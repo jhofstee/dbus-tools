@@ -268,9 +268,9 @@ if len(args) == 0:
 		return not service.startswith(':')
 	
 	dbusd = Object(bus, 'org.freedesktop.DBus', '/')
-	services = dbusd.get_object().ListNames()
+	services = dbusd.get_object().ListNames(dbus_interface = 'org.freedesktop.DBus')
 	if options.activatables:
-		services += dbusd.get_object().ListActivatableNames()
+		services += dbusd.get_object().ListActivatableNames(dbus_interface = 'org.freedesktop.DBus')
 	if not options.unnamed: # Delete unnamed services if needed
 		services = filter(named, services)
 	if not options.empty: # Delete empty services if needed

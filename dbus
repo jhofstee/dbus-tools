@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 # Copyright (c) 2007-2010, Simon Lipp
-# 
+#
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 # WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -23,7 +23,7 @@ import lxml.etree
 
 class Signature(dbus.Signature):
 	""" Subclass of dbus.Signature which adds a __str__ method (human-readable signature) """
-	
+
 	_dbus_types_names = {
 		"y": "Byte",
 		"b": "Boolean",
@@ -38,26 +38,26 @@ class Signature(dbus.Signature):
 		"o": "ObjectPath",
 		"g": "Signature",
 		"v": "Variant" }
-	
+
 	def __iter__(self):
 		return (Signature(x) for x in dbus.Signature.__iter__(self))
-	
+
 	def _container_type(self):
 		if self.startswith("("): return dbus.Struct
 		elif self.startswith("a{"): return dbus.Dictionary
 		elif self.startswith("a"): return dbus.Array
 		else: return None
-	
+
 	def _container_content(self):
 		if self._container_type() == dbus.Struct: return Signature(self[1:-1])
 		elif self._container_type() == dbus.Dictionary: return Signature(self[2:-1])
 		elif self._container_type() == dbus.Array: return Signature(self[1:])
 		else: return None
-	
+
 	def __str__(self):
 		if len(tuple(self)) > 1:
 			return ", ".join(self)
-		
+
 		t, c = self._container_type(), self._container_content()
 		if t is None:
 			return self._dbus_types_names[self[0]]
@@ -66,10 +66,10 @@ class Signature(dbus.Signature):
 				return str(c) + "[]"
 			else:
 				return t.__name__ + " {" + str(c) + "}"
-	
+
 	def pprint(self, name):
 		""" Retuns the argument in a human-readable form, e.g. "Int32[] myArray" """
-		
+
 		x = str(self)
 		if name:
 			x += " " + name
@@ -85,9 +85,9 @@ def generator_is_empty(generator):
 
 class Callable(object):
 	""" A signal or a method """
-	
+
 	Argument = collections.namedtuple("Argument", "name signature")
-	
+
 	def __init__(self, xml):
 		self.name = xml.get('name') or ""
 		self.args_in = []
@@ -105,10 +105,10 @@ class Callable(object):
 				self.args_in.append(arg_obj)
 			else:
 				self.args_out.append(arg_obj)
-	
+
 	def pprint(self):
 		""" Returns the callable signature in a human-readable form, e.g "void foo(Int16 x)" """
-		
+
 		rpart = ", ".join(a.signature.pprint(a.name) for a in self.args_in)
 		if self._signal:
 			lpart = "signal"
@@ -119,18 +119,18 @@ class Callable(object):
 			lpart = str(self.args_out[0].signature)
 		elif len(self.args_out) != 0:
 			lpart = "(%s)" % ", ".join(a.signature.pprint(a.name) for a in self.args_out)
-		
+
 		return "%s %s(%s)" % (lpart, self.name, rpart)
 
 
 class Interface(object):
 	""" An interface is a set of methods and signals """
-	
+
 	def __init__(self, xml):
 		self.name = xml.get('name')
 		self.methods = []
 		self.signals = []
-		
+
 		for method in xml.findall("method"):
 			self.methods.append(Callable(method))
 		for signal in xml.findall("signal"):
@@ -145,7 +145,7 @@ class Interface(object):
 
 class Object(object):
 	""" Introspected object. This is a set of interfaces and children objects. """
-	
+
 	def __init__(self, bus, service, path):
 		self.bus = bus
 		self.service = service
@@ -153,25 +153,25 @@ class Object(object):
 		self._object = None
 		self._interfaces = None
 		self._children = None
-	
+
 	@property
 	def object(self):
 		if not self._object:
 			self._object = self.bus.get_object(self.service, self.path)
 		return self._object
-	
+
 	@property
 	def interfaces(self):
 		if self._interfaces is None:
 			self._introspect()
 		return self._interfaces
-	
+
 	@property
 	def children(self):
 		if self._children is None:
 			self._introspect()
 		return self._children
-	
+
 	def is_empty(self, check_for_signals = True, recursive = True):
 		# Check wether an object has a method or a signal (only if check_for_signals is True)
 		# If recursive is True, then it will also return True if the object don't has any method nor signal but one of its child has
@@ -180,22 +180,22 @@ class Object(object):
 			if not iface.is_empty(check_for_signals):
 				empty = False
 				break
-		
+
 		if empty is False:
 			return False
 		elif not recursive:
 			return True
-		
+
 		for child in self.children:
 			if not child.is_empty(check_for_signals, recursive):
 				empty = False
 				break
-		
+
 		return empty
-	
+
 	def resolve_method(self, name):
 		""" Find an (interface, method) from "name". """
-		
+
 		if "." in name:
 			ifname, name = name.rsplit(".", 1)
 		else:
@@ -238,12 +238,12 @@ def list_objects(root_obj, hide_empty, check_for_signals):
 	if hide_empty and root_obj.is_empty(check_for_signals):
 		# The object and its children are empty, no need to continue
 		return []
-	if hide_empty and root_obj.is_empty(check_for_signals, False): 
+	if hide_empty and root_obj.is_empty(check_for_signals, False):
 		# The object is empty but one of its children isn't, so continue
 		result = []
 	else:
 		result = [root_obj]
-	
+
 	for child in root_obj.children:
 		result.extend(list_objects(child, hide_empty, check_for_signals))
 	return result
@@ -309,7 +309,7 @@ if len(args) == 0:
 		services = filter(service_is_named, services)
 	if options.hide_empty: # Delete empty services if needed
 		services = filter(service_is_empty, services)
-	
+
 	for service in services:
 		print service
 elif len(args) == 1:
@@ -317,7 +317,7 @@ elif len(args) == 1:
 		print obj.path
 elif len(args) == 2:
 	obj = Object(bus, args[0], args[1])
-	
+
 	if options.completion:
 		for iface in obj.interfaces:
 			for x in iface.methods:
@@ -332,12 +332,12 @@ elif len(args) == 2:
 			if options.hide_empty and iface.is_empty():
 				continue
 			print "Interface %s:" % iface.name
-			
+
 			for method in iface.methods:
 				print " " + method.pprint()
 			if iface.methods or not options.signals or not iface.signals:
 				print
-			
+
 			if options.signals:
 				for signal in iface.signals:
 					print " " + signal.pprint()
@@ -348,7 +348,7 @@ else:
 	obj = Object(bus, service, path)
 	args = args[3:]
 	iface, method = obj.resolve_method(method)
-	
+
 	if options.completion:
 		if len(args) < len(method.args_in):
 			arg = method.args_in[len(args)]
@@ -365,9 +365,9 @@ else:
 
 		if not isinstance(ret, tuple) or isinstance(ret, dbus.Struct):
 			ret = (ret,)
-		
+
 		for i, arg in enumerate(ret):
 			if i < len(outargs):
 				if outargs[i].name:
-					print "%s = " % outargs[i].name, 
+					print "%s = " % outargs[i].name,
 			pprint.pprint(to_native_type(arg))

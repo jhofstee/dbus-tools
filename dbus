@@ -213,7 +213,8 @@ class Object(object):
 		self._interfaces = []
 		self._children = []
 		try:
-			data = lxml.etree.XML(self.object.Introspect())
+			iface = dbus.Interface(self.object, 'org.freedesktop.DBus.Introspectable')
+			data = lxml.etree.XML(iface.Introspect())
 		except:
 			return
 		for child in data.findall('node'):

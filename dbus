@@ -14,10 +14,16 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+from __future__ import print_function
+
 import pprint
 import dbus
 import collections
 import optparse
+
+import sys
+if sys.version_info[0] >= 3:
+	unicode = str
 
 import lxml.etree
 
@@ -321,38 +327,38 @@ if len(args) == 0:
 		services = filter(service_is_empty, services)
 
 	for service in services:
-		print service
+		print(service)
 elif len(args) == 1:
 	for obj in list_objects(Object(bus, args[0], '/'), options.hide_empty, options.signals):
-		print obj.path
+		print(obj.path)
 elif len(args) == 2:
 	obj = Object(bus, args[0], args[1])
 
 	if options.completion:
 		for iface in obj.interfaces:
 			for x in iface.methods:
-				print x.name
-				print iface.name + "." + x.name
+				print(x.name)
+				print(iface.name + "." + x.name)
 			if options.signals:
 				for x in iface.signals:
-					print x.name
-					print iface.name + "." + x.name
+					print(x.name)
+					print(iface.name + "." + x.name)
 	else:
 		for iface in obj.interfaces:
 			if options.hide_empty and iface.is_empty():
 				continue
-			print "Interface %s:" % iface.name
+			print("Interface %s:" % iface.name)
 
 			for method in iface.methods:
-				print " " + method.pprint()
+				print(" " + method.pprint())
 			if iface.methods or not options.signals or not iface.signals:
-				print
+				print()
 
 			if options.signals:
 				for signal in iface.signals:
-					print " " + signal.pprint()
+					print(" " + signal.pprint())
 				if iface.signals:
-					print
+					print()
 else:
 	service, path, method = args[0:3]
 	obj = Object(bus, service, path)
@@ -362,12 +368,12 @@ else:
 	if options.completion:
 		if len(args) < len(method.args_in):
 			arg = method.args_in[len(args)]
-			print unicode(arg.signature),
+			print(unicode(arg.signature))
 			if arg.name:
-				print arg.name,
-			print
+				print(arg.name, end="")
+			print()
 		else:
-			print "No more arguments"
+			print("No more arguments")
 	else:
 		args = eval_list(args)
 		ret = obj.object.get_dbus_method(method.name, iface.name)(*args)
@@ -379,5 +385,5 @@ else:
 		for i, arg in enumerate(ret):
 			if i < len(outargs):
 				if outargs[i].name:
-					print "%s = " % outargs[i].name,
+					print("%s = " % outargs[i].name, end="")
 			Utf8PrettyPrinter().pprint(to_native_type(arg))
